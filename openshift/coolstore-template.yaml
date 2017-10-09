@@ -361,7 +361,11 @@ objects:
           - name: DB_PASSWORD
             value: ${INVENTORY_DB_PASSWORD}
           - name: DB_DATABASE
-            value: inventorydb
+            value: ${INVENTORY_DB_NAME}
+          - name: INVENTORY_POSTGRESQL_SERVICE_HOST
+            value: ${INVENTORY_DB_HOSTNAME}
+          - name: INVENTORY_POSTGRESQL_SERVICE_PORT
+            value: ${INVENTORY_DB_PORT}
           image: inventory
           imagePullPolicy: Always
           lifecycle:
@@ -1815,6 +1819,20 @@ parameters:
   generate: expression
   name: INVENTORY_DB_PASSWORD
   required: true
+- description: Inventory Service database name
+  displayName: Inventory Database name
+  name: INVENTORY_DB_NAME
+  required: true
+  value: inventorydb
+- description: Inventory Service database hostname (leave blank to automatically create a local datasource)
+  displayName: Inventory Database hostname
+  name: INVENTORY_DB_HOSTNAME
+  required: false
+- description: Inventory Service database port
+  displayName: Inventory Database port
+  name: INVENTORY_DB_PORT
+  required: false
+  value: 5432
 - description: Catalog Service database user name
   displayName: Catalog Database username
   from: user[a-zA-Z0-9]{3}
