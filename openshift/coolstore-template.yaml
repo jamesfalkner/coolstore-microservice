@@ -1093,6 +1093,8 @@ objects:
         - env:
           - name: CATALOG_ENDPOINT
             value: "http://catalog:8080"
+          - name: INVENTORY_ENDPOINT
+            value: "http://inventory:8080"
           - name: PRICING_ENDPOINT
             value: "http://pricing:8080"
           - name: KIE_CONTAINER_DEPLOYMENT

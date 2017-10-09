@@ -90,8 +90,8 @@ angular.module('app')
             }])
 
     .controller("CartController",
-        ['$scope', '$http', 'Notifications', 'cart', 'Auth',
-            function ($scope, $http, Notifications, cart, $auth) {
+        ['$scope', '$http', 'Notifications', 'cart', 'catalog', 'Auth',
+            function ($scope, $http, Notifications, cart, catalog, $auth) {
 
                 function reset() {
                     $scope.cart = cart.getCart();
@@ -141,6 +141,7 @@ angular.module('app')
 
                 $scope.checkout = function () {
                     cart.checkout().then(function (cartData) {
+                        catalog.refresh();
                     }, function (err) {
                         Notifications.error("Error checking out: " + err.statusText);
                     });

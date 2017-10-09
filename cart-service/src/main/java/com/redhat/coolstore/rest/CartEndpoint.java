@@ -14,6 +14,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.redhat.coolstore.service.InventoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ public class CartEndpoint implements Serializable {
 
     @Autowired
     private ShoppingCartService shoppingCartService;
+
+    @Autowired
+    private InventoryService inventoryService;
 
     @GET
     @Path("/{cartId}")
@@ -138,6 +142,11 @@ public class CartEndpoint implements Serializable {
     public ShoppingCart checkout(@PathParam("cartId") String cartId) {
         // TODO: register purchase of shoppingCart items by specific user in session
         ShoppingCart cart = shoppingCartService.getShoppingCart(cartId);
+        // remove inventory
+        cart.getShoppingCartItemList().forEach(sci ->
+            inventoryService.reduceQuantity(sci.getProduct().getItemId(), sci.getQuantity())
+        );
+
         cart.resetShoppingCartItemList();
         shoppingCartService.priceShoppingCart(cart);
         return cart;

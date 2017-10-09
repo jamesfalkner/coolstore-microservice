@@ -29,4 +29,12 @@ public class InventoryService {
 		
 		return inventory;
 	}
+
+	public Inventory reduceQuantity(String itemId, int amt) {
+		Inventory inventory = em.find(Inventory.class,itemId);
+		int originalQuantity = inventory.getQuantity();
+		inventory.setQuantity(originalQuantity - amt);
+		return inventory;
+
+	}
 }

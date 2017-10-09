@@ -20,7 +20,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 	ShippingService ss;
 	
 	@Autowired
-	CatalogService catalogServie;
+	CatalogService catalogService;
 	
 	@Autowired
 	PromoService ps;
@@ -86,7 +86,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 	public Product getProduct(String itemId) {
 		if (!productMap.containsKey(itemId)) {
 			// Fetch and cache products. TODO: Cache should expire at some point!
-			List<Product> products = catalogServie.products();
+			List<Product> products = catalogService.products();
 			productMap = products.stream().collect(Collectors.toMap(Product::getItemId, Function.identity()));
 		}
 

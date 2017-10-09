@@ -29,5 +29,9 @@ angular.module("app")
 	   return deferred.promise;
 	};
 
+	factory.refresh = function() {
+	  products = undefined;
+    };
+
 	return factory;
 }]);

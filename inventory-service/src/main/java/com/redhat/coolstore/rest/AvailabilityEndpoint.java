@@ -4,10 +4,7 @@ import java.io.Serializable;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -33,6 +30,14 @@ public class AvailabilityEndpoint implements Serializable {
 	public Inventory getAvailability(@PathParam("itemId") String itemId) {
 		LOGGER.debug("Calling the inventory service");
 		return inventoryService.getInventory(itemId);
+	}
+
+	@PUT // should really be PATCH but not supported in JAX-RS 2.1
+	@Path("{itemId}/reduce/{quantity}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Inventory reduceQuantity(@PathParam("itemId") String itemId, @PathParam("quantity") int amt) {
+		LOGGER.debug("Updating inventory item " + itemId + " by reducing quantity by " + amt);
+		return inventoryService.reduceQuantity(itemId, amt);
 	}
 
 }
