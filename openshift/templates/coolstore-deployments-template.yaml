@@ -1471,7 +1471,7 @@ parameters:
   displayName: Inventory Database port
   name: INVENTORY_DB_PORT
   required: false
-  value: 5432
+  value: '5432'
 - description: Catalog Service database user name
   from: user[a-zA-Z0-9]{3}
   generate: expression
