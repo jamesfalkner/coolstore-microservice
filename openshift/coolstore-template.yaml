@@ -366,6 +366,14 @@ objects:
             value: ${INVENTORY_DB_HOSTNAME}
           - name: INVENTORY_POSTGRESQL_SERVICE_PORT
             value: ${INVENTORY_DB_PORT}
+          - name: AWS_ACCESS_KEY_ID
+            value: ${AWS_ACCESS_KEY_ID}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: ${AWS_SECRET_ACCESS_KEY}
+          - name: AWS_REGION
+            value: ${AWS_REGION}
+          - name: INVENTORY_NOTIFICATION_PHONE_NUMBER
+            value: ${INVENTORY_NOTIFICATION_PHONE_NUMBER}
           image: inventory
           imagePullPolicy: Always
           lifecycle:
@@ -1833,6 +1841,24 @@ parameters:
   name: INVENTORY_DB_PORT
   required: false
   value: '5432'
+- description: AWS SDK Access Key
+  displayName: AWS SDK Access Key
+  name: AWS_ACCESS_KEY_ID
+  required: true
+- description: AWS SDK Secret
+  displayName: AWS SDK Secret
+  name: AWS_SECRET_ACCESS_KEY
+  required: true
+- description: AWS Region
+  displayName: AWS Region
+  name: AWS_REGION
+  required: true
+  value: us-east-1
+- description: SMS Phone number (with +country code) to which to send notifications
+  displayName: SMS Phone number
+  name: INVENTORY_NOTIFICATION_PHONE_NUMBER
+  required: true
+  value: '+14075551212'
 - description: Catalog Service database user name
   displayName: Catalog Database username
   from: user[a-zA-Z0-9]{3}
