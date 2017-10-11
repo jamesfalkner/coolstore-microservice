@@ -4,7 +4,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.Stateless;
+import javax.ejb.Singleton;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -12,7 +12,7 @@ import javax.persistence.PersistenceContext;
 import com.redhat.coolstore.model.Config;
 import com.redhat.coolstore.model.Inventory;
 
-@Stateless
+@Singleton
 public class InventoryService {
 
 	@PersistenceContext
