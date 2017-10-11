@@ -1,15 +1,15 @@
 package com.redhat.coolstore.service;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import com.redhat.coolstore.model.Config;
 import com.redhat.coolstore.model.Inventory;
 
 @Stateless
@@ -21,14 +21,29 @@ public class InventoryService {
 	@Inject
 	private SNSService snsService;
 
-	public static final int LOW_INVENTORY_THRESHOLD = 30;
-
 	public static final Logger logger = Logger.getLogger(SNSService.class.getName());
 
 	public InventoryService() {
 
 	}
-	
+
+	private Config config;
+
+	public Config getConfig() {
+		return config;
+	}
+
+	public void setConfig(Config config) {
+		this.config = config;
+	}
+
+	@PostConstruct
+	public void initConfig() {
+		this.config = new Config();
+		this.config.setSms(System.getenv("INVENTORY_NOTIFICATION_PHONE_NUMBER"));
+		this.config.setThreshold(30);
+	}
+
 	public Inventory getInventory(String itemId) {
 		Inventory inventory = em.find(Inventory.class,itemId);
 		
@@ -45,12 +60,11 @@ public class InventoryService {
 		int originalQuantity = inventory.getQuantity();
 		int newQuantity = originalQuantity - amt;
 		inventory.setQuantity(newQuantity);
-
-		if (newQuantity < LOW_INVENTORY_THRESHOLD) {
+		if (newQuantity < config.getThreshold()) {
 			try {
-				snsService.sendNotification("Low Inventory Warning: Item " +
+				snsService.sendNotification(config.getSms(),"Low Inventory Warning: Item " +
 						inventory.getItemId() + " quantity remaining: " + newQuantity +
-						" is below threshold (" + LOW_INVENTORY_THRESHOLD + ").");
+						" is below threshold (" + config.getThreshold() + ").");
 			} catch (Exception ex) {
 				logger.log(Level.WARNING, "Cannot send SNS: " + ex.getMessage(), ex);
 			}

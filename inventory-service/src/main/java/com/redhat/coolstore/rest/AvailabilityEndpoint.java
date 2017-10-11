@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
+import com.redhat.coolstore.model.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,6 @@ public class AvailabilityEndpoint implements Serializable {
 	@Path("{itemId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Inventory getAvailability(@PathParam("itemId") String itemId) {
-		LOGGER.debug("Calling the inventory service");
 		return inventoryService.getInventory(itemId);
 	}
 
@@ -36,8 +36,22 @@ public class AvailabilityEndpoint implements Serializable {
 	@Path("{itemId}/reduce/{quantity}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Inventory reduceQuantity(@PathParam("itemId") String itemId, @PathParam("quantity") int amt) {
-		LOGGER.debug("Updating inventory item " + itemId + " by reducing quantity by " + amt);
 		return inventoryService.reduceQuantity(itemId, amt);
+	}
+
+	@GET
+	@Path("/config")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Config getConfig() {
+		return inventoryService.getConfig();
+
+	}
+
+	@POST
+	@Path("/config")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public void config(Config config) {
+		inventoryService.setConfig(config);
 	}
 
 }

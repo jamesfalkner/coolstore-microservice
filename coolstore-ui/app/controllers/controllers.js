@@ -26,8 +26,7 @@ angular.module('app')
                     $auth.login();
                 };
 
-                $scope.rateFunction = function(itemId, rating)
-                {
+                $scope.rateFunction = function(itemId, rating) {
                     Rating.postRating(itemId, rating).then(function(newRate) {
                         $scope.products.forEach(function(item) {
                             if (item.product.itemId === itemId) {
@@ -61,7 +60,7 @@ angular.module('app')
                         Notifications.error("Error retrieving products: " + data.error);
                         return;
                     }
-                    
+
                     $scope.products = data.map(function (el) {
                         return {
                             quantity: "1",
@@ -158,8 +157,8 @@ angular.module('app')
             }])
 
     .controller("HeaderController",
-        ['$scope', '$location', '$http', 'Notifications', 'cart', 'Auth',
-            function ($scope, $location, $http, Notifications, cart, $auth) {
+        ['$scope', '$location', '$modal', '$http', 'Notifications', 'cart', 'Auth',
+            function ($scope, $location, $modal, $http, Notifications, cart, $auth) {
                 $scope.userInfo = $auth.userInfo;
 
                 $scope.cartTotal = 0.0;
@@ -208,5 +207,41 @@ angular.module('app')
 
                 $scope.isActive = function (loc) {
                     return loc === $location.path();
+                };
+
+                $scope.configPopup = function () {
+                    $modal.open({
+                        templateUrl: 'partials/config-popup.html',
+                        controller: 'ConfigPopupController',
+                        size: 'lg'
+                    });
+                };
+            }])
+
+    .controller("ConfigPopupController",
+        ['$scope', '$http', 'Notifications', 'Inventory',
+            function ($scope, $http, Notifications, Inventory) {
+
+                $scope.sms = undefined;
+                $scope.threshold = undefined;
+
+                Inventory.getConfig().then(function(config) {
+                    $scope.sms = config.sms;
+                    $scope.threshold = config.threshold;
+                }, function(err) {
+
+                });
+
+                $scope.save = function() {
+                    $scope.$close();
+                    // call REST to save config
+                    Inventory.saveConfig({
+                        threshold: $scope.threshold,
+                        sms: $scope.sms
+                    }).then(function() {
+
+                    }, function(err) {
+                        Notifications.error("Unable to save configuration, try again please!");
+                    });
                 }
             }]);

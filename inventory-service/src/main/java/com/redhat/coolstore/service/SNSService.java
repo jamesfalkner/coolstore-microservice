@@ -16,7 +16,6 @@ import java.util.Map;
 public class SNSService {
 
     private AmazonSNS client;
-    private String phoneNumber;
 
     @PostConstruct
     public void init() {
@@ -27,10 +26,6 @@ public class SNSService {
         // INVENTORY_NOTIFICATION_PHONE_NUMBER
         //
         client = AmazonSNSClientBuilder.standard().build();
-        phoneNumber = System.getenv("INVENTORY_NOTIFICATION_PHONE_NUMBER");
-        if (phoneNumber == null) {
-            throw new IllegalArgumentException("INVENTORY_NOTIFICATION_PHONE_NUMBER not set in env");
-        }
     }
 
     @PreDestroy
@@ -40,7 +35,7 @@ public class SNSService {
         }
     }
 
-    public void sendNotification(String msg) {
+    public void sendNotification(String phoneNumber, String msg) {
         Map<String, MessageAttributeValue> smsAttributes =
                 new HashMap<>();
 
@@ -58,8 +53,6 @@ public class SNSService {
                 .withMessage(msg)
                 .withPhoneNumber(phoneNumber)
                 .withMessageAttributes(smsAttributes));
-        System.out.println("Result of sending: " + result); // Prints the message ID.
-
     }
 
 }
