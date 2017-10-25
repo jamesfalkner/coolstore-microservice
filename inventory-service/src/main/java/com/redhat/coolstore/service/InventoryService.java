@@ -34,7 +34,11 @@ public class InventoryService {
 	}
 
 	public void setConfig(Config config) {
+		String existingPh = this.config.getSms();
 		this.config = config;
+		if (config.getSms() != null && !config.getSms().equals(existingPh)) {
+			snsService.subscribeSms(config.getSms());
+		}
 	}
 
 	@PostConstruct
@@ -42,6 +46,7 @@ public class InventoryService {
 		this.config = new Config();
 		this.config.setSms(System.getenv("INVENTORY_NOTIFICATION_PHONE_NUMBER"));
 		this.config.setThreshold(30);
+		snsService.subscribeSms(this.config.getSms());
 	}
 
 	public Inventory getInventory(String itemId) {
@@ -62,7 +67,7 @@ public class InventoryService {
 		inventory.setQuantity(newQuantity);
 		if (newQuantity < config.getThreshold()) {
 			try {
-				snsService.sendNotification(config.getSms(),"Low Inventory Warning: Item " +
+				snsService.sendNotification("Low Inventory Warning: Item " +
 						inventory.getItemId() + " quantity remaining: " + newQuantity +
 						" is below threshold (" + config.getThreshold() + ").");
 			} catch (Exception ex) {

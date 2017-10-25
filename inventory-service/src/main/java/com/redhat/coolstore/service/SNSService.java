@@ -1,31 +1,40 @@
 package com.redhat.coolstore.service;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
+import com.amazonaws.services.sns.model.*;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @ApplicationScoped
 public class SNSService {
 
+    private Logger logger = Logger.getLogger(SNSService.class.getName());
     private AmazonSNS client;
+    private String topicArn;
 
     @PostConstruct
     public void init() {
-        // will look for:
-        // AWS_ACCESS_KEY_ID
-        // AWS_SECRET_ACCESS_KEY
-        // AWS_REGION
-        // INVENTORY_NOTIFICATION_PHONE_NUMBER
         //
-        client = AmazonSNSClientBuilder.standard().build();
+        // will look for:
+        // AWS_ACCESS_KEY
+        // AWS_SECRET_KEY
+        // AWS_REGION_NAME
+        //
+        client = AmazonSNSClientBuilder.standard()
+                .withCredentials(new SNSServiceCredentialsProvider())
+                .withRegion(System.getenv("AWS_REGION_NAME"))
+                .build();
+
+        topicArn = System.getenv("SNS_TOPIC_ARN");
     }
 
     @PreDestroy
@@ -35,7 +44,27 @@ public class SNSService {
         }
     }
 
-    public void sendNotification(String phoneNumber, String msg) {
+    public void subscribeSms(String phoneNumber) {
+
+        // unsubscribe everything
+        ListSubscriptionsResult result = client.listSubscriptions();
+        for (Subscription sub : result.getSubscriptions()) {
+            logger.info("Unsubscribing from " + sub);
+            UnsubscribeResult unResult = client.unsubscribe(sub.getSubscriptionArn());
+            logger.info("Unsubscribe result : " + unResult);
+        }
+
+        // subscribe new phone number
+        SubscribeRequest subscribe = new SubscribeRequest(topicArn, "sms",
+                phoneNumber);
+        SubscribeResult subscribeResult = client.subscribe(subscribe);
+        logger.info("Subscribe request: " +
+                client.getCachedResponseMetadata(subscribe));
+        logger.info("Subscribe result: " + subscribeResult);
+
+    }
+
+    public void sendNotification(String msg) {
         Map<String, MessageAttributeValue> smsAttributes =
                 new HashMap<>();
 
@@ -49,10 +78,12 @@ public class SNSService {
                 .withStringValue("Promotional") //Sets the type to promotional.
                 .withDataType("String"));
 
-        PublishResult result = client.publish(new PublishRequest()
+        PublishRequest publishRequest = new PublishRequest()
                 .withMessage(msg)
-                .withPhoneNumber(phoneNumber)
-                .withMessageAttributes(smsAttributes));
+                .withTopicArn(topicArn)
+                .withMessageAttributes(smsAttributes);
+        PublishResult result = client.publish(publishRequest);
+        logger.info("Notification send result: " + result);
     }
 
 }

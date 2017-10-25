@@ -366,12 +366,14 @@ objects:
             value: ${INVENTORY_DB_HOSTNAME}
           - name: INVENTORY_POSTGRESQL_SERVICE_PORT
             value: ${INVENTORY_DB_PORT}
-          - name: AWS_ACCESS_KEY_ID
-            value: ${AWS_ACCESS_KEY_ID}
-          - name: AWS_SECRET_ACCESS_KEY
-            value: ${AWS_SECRET_ACCESS_KEY}
-          - name: AWS_REGION
-            value: ${AWS_REGION}
+          - name: AWS_ACCESS_KEY
+            value: ${AWS_ACCESS_KEY}
+          - name: AWS_SECRET_KEY
+            value: ${AWS_SECRET_KEY}
+          - name: AWS_REGION_NAME
+            value: ${AWS_REGION_NAME}
+          - name: SNS_TOPIC_ARN
+            value: ${SNS_TOPIC_ARN}
           - name: INVENTORY_NOTIFICATION_PHONE_NUMBER
             value: ${INVENTORY_NOTIFICATION_PHONE_NUMBER}
           image: inventory
@@ -1843,17 +1845,21 @@ parameters:
   value: '5432'
 - description: AWS SDK Access Key
   displayName: AWS SDK Access Key
-  name: AWS_ACCESS_KEY_ID
+  name: AWS_ACCESS_KEY
   required: true
 - description: AWS SDK Secret
   displayName: AWS SDK Secret
-  name: AWS_SECRET_ACCESS_KEY
+  name: AWS_SECRET_KEY
   required: true
 - description: AWS Region
   displayName: AWS Region
-  name: AWS_REGION
+  name: AWS_REGION_NAME
   required: true
   value: us-east-1
+- description: SNS Topic name (ARN)
+  displayName: SNS Topic name (ARN)
+  name: SNS_TOPIC_ARN
+  required: true
 - description: SMS Phone number (with +country code) to which to send notifications
   displayName: SMS Phone number
   name: INVENTORY_NOTIFICATION_PHONE_NUMBER
