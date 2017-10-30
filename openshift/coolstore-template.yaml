@@ -352,20 +352,20 @@ objects:
             value: CqUo3fYDTv
           - name: AUTO_DEPLOY_EXPLODED
             value: "false"
-          - name: DB_SERVICE_PREFIX_MAPPING
-            value: inventory-postgresql=DB
+          - name: DB_TYPE
+            value: ${INVENTORY_DB_TYPE}
           - name: DB_JNDI
             value: java:jboss/datasources/InventoryDS
-          - name: DB_USERNAME
+          - name: DB_HOST
+            value: ${INVENTORY_DB_HOSTNAME}
+          - name: DB_PORT
+            value: ${INVENTORY_DB_PORT}
+          - name: DB_USER
             value: ${INVENTORY_DB_USERNAME}
           - name: DB_PASSWORD
             value: ${INVENTORY_DB_PASSWORD}
-          - name: DB_DATABASE
+          - name: DB_NAME
             value: ${INVENTORY_DB_NAME}
-          - name: INVENTORY_POSTGRESQL_SERVICE_HOST
-            value: ${INVENTORY_DB_HOSTNAME}
-          - name: INVENTORY_POSTGRESQL_SERVICE_PORT
-            value: ${INVENTORY_DB_PORT}
           - name: AWS_ACCESS_KEY
             value: ${AWS_ACCESS_KEY}
           - name: AWS_SECRET_KEY
@@ -1823,6 +1823,11 @@ parameters:
   generate: expression
   name: INVENTORY_DB_USERNAME
   required: true
+- description: Inventory Service database type (mysql or postgresql)
+  displayName: Inventory Database type
+  name: INVENTORY_DB_TYPE
+  required: true
+  value: mysql
 - description: Inventory Service database user password
   displayName: Inventory Database password
   from: '[a-zA-Z0-9]{8}'
@@ -1842,7 +1847,7 @@ parameters:
   displayName: Inventory Database port
   name: INVENTORY_DB_PORT
   required: false
-  value: '5432'
+  value: '3306'
 - description: AWS SDK Access Key
   displayName: AWS SDK Access Key
   name: AWS_ACCESS_KEY
