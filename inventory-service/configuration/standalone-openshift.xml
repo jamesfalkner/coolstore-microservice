@@ -140,8 +140,6 @@
                         <password>${env.DB_PASSWORD}</password>
                     </security>
                 </datasource>
-
-                <!-- ##DATASOURCES## -->
                 <drivers>
                     <driver name="h2" module="com.h2database.h2">
                         <xa-datasource-class>org.h2.jdbcx.JdbcDataSource</xa-datasource-class>
@@ -176,7 +174,6 @@
                 </managed-scheduled-executor-services>
             </concurrent>
             <default-bindings context-service="java:jboss/ee/concurrency/context/default"
-                              <!-- ##DEFAULT_DATASOURCE## -->
                               ##DEFAULT_JMS##
                               managed-executor-service="java:jboss/ee/concurrency/executor/default"
                               managed-scheduled-executor-service="java:jboss/ee/concurrency/scheduler/default"
