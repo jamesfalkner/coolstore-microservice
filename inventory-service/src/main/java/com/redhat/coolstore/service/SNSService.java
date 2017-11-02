@@ -7,7 +7,9 @@ import com.amazonaws.services.sns.model.*;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -41,23 +43,61 @@ public class SNSService {
         }
     }
 
-    public void subscribeSms(String phoneNumber) {
-
+    public List<String> unsubscribeByProtocol(String protocol, List<String> ignoreList) {
         // unsubscribe everything
-        ListSubscriptionsResult result = client.listSubscriptions();
+        List<String> ignored = new ArrayList<>();
+        ListSubscriptionsByTopicResult result = client.listSubscriptionsByTopic(topicArn);
+        logger.info("unsubscribe from all " + protocol + ": ignoreList: " + ignoreList + ": considering from " + result.getSubscriptions().size() + " subscriptions");
         for (Subscription sub : result.getSubscriptions()) {
-            logger.info("Unsubscribing from " + sub);
-            UnsubscribeResult unResult = client.unsubscribe(sub.getSubscriptionArn());
-            logger.info("Unsubscribe result : " + unResult);
+            logger.info("unsubscribe: Inspecting " + sub + " for protocol: " + protocol);
+            if (sub.getProtocol().equals(protocol)) {
+                if (ignoreList == null || !ignoreList.contains(sub.getEndpoint())) {
+                    logger.info("Unsubscribing " + protocol + " from " + sub);
+                    UnsubscribeResult unResult = client.unsubscribe(sub.getSubscriptionArn());
+                    logger.info("Unsubscribe result : " + unResult);
+                } else {
+                    ignored.add(sub.getEndpoint());
+                }
+            }
         }
+        return ignored;
 
+    }
+
+    public void subscribeSms(List<String> phoneNumbers) {
+
+        List<String> stillSubscribed = unsubscribeByProtocol("sms", phoneNumbers);
         // subscribe new phone number
-        SubscribeRequest subscribe = new SubscribeRequest(topicArn, "sms",
-                phoneNumber);
-        SubscribeResult subscribeResult = client.subscribe(subscribe);
-        logger.info("Subscribe request: " +
-                client.getCachedResponseMetadata(subscribe));
-        logger.info("Subscribe result: " + subscribeResult);
+        phoneNumbers.forEach(phoneNumber -> {
+            if (!stillSubscribed.contains(phoneNumber)) {
+                SubscribeRequest subscribe = new SubscribeRequest(topicArn, "sms",
+                        phoneNumber);
+                SubscribeResult subscribeResult = client.subscribe(subscribe);
+                logger.info("Subscribe sms request: " +
+                        client.getCachedResponseMetadata(subscribe));
+                logger.info("Subscribe sms result: " + subscribeResult);
+            } else {
+                logger.info("skipping already subscribed sms endpoint " + phoneNumber);
+            }
+        });
+    }
+
+    public void subscribeEmail(List<String> emails) {
+
+        List<String> stillSubscribed = unsubscribeByProtocol("email", emails);
+        // subscribe new emails
+        emails.forEach(email -> {
+            if (!stillSubscribed.contains(email)) {
+                SubscribeRequest subscribe = new SubscribeRequest(topicArn, "email",
+                        email);
+                SubscribeResult subscribeResult = client.subscribe(subscribe);
+                logger.info("Subscribe email request: " +
+                        client.getCachedResponseMetadata(subscribe));
+                logger.info("Subscribe email result: " + subscribeResult);
+            } else {
+                logger.info("skipping already subscribed email endpoint " + email);
+            }
+        });
 
     }
 

@@ -223,10 +223,12 @@ angular.module('app')
             function ($scope, $http, Notifications, Inventory) {
 
                 $scope.sms = undefined;
+                $scope.email = undefined;
                 $scope.threshold = undefined;
 
                 Inventory.getConfig().then(function(config) {
-                    $scope.sms = config.sms;
+                    $scope.sms = config.sms.join();
+                    $scope.email = config.email.join();
                     $scope.threshold = config.threshold;
                 }, function(err) {
 
@@ -237,7 +239,8 @@ angular.module('app')
                     // call REST to save config
                     Inventory.saveConfig({
                         threshold: $scope.threshold,
-                        sms: $scope.sms
+                        sms: $scope.sms.length > 0 ? $scope.sms.split(',') : [],
+                        email: $scope.email.length > 0 ? $scope.email.split(',') : []
                     }).then(function() {
 
                     }, function(err) {

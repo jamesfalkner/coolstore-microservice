@@ -34,19 +34,30 @@ public class InventoryService {
 	}
 
 	public void setConfig(Config config) {
-		String existingPh = this.config.getSms();
 		this.config = config;
-		if (config.getSms() != null && !config.getSms().equals(existingPh)) {
+		if (config.getSms() != null && !config.getSms().isEmpty()) {
 			snsService.subscribeSms(config.getSms());
+		} else {
+			snsService.unsubscribeByProtocol("sms", null);
 		}
+
+		if (config.getEmail() != null && !config.getEmail().isEmpty()) {
+			snsService.subscribeEmail(config.getEmail());
+		} else {
+			snsService.unsubscribeByProtocol("email", null);
+		}
+
+
 	}
 
 	@PostConstruct
 	public void initConfig() {
 		this.config = new Config();
-		this.config.setSms(System.getenv("INVENTORY_NOTIFICATION_PHONE_NUMBER"));
+		this.config.setSms(Config.getListFromCSV(System.getenv("INVENTORY_NOTIFICATION_PHONE_NUMBER")));
+		this.config.setEmail(Config.getListFromCSV(System.getenv("INVENTORY_NOTIFICATION_EMAIL_ADDRESS")));
 		this.config.setThreshold(30);
 		snsService.subscribeSms(this.config.getSms());
+		snsService.subscribeEmail(this.config.getEmail());
 	}
 
 	public Inventory getInventory(String itemId) {

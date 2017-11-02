@@ -1865,11 +1865,15 @@ parameters:
   displayName: SNS Topic name (ARN)
   name: SNS_TOPIC_ARN
   required: true
-- description: SMS Phone number (with +country code) to which to send notifications
-  displayName: SMS Phone number
+- description: Comma-separated SMS Phone numbers (with +country code) to which to send notifications
+  displayName: SMS Phone numbers
   name: INVENTORY_NOTIFICATION_PHONE_NUMBER
   required: true
   value: '+14075551212'
+- description: Comma-separated email addresses to which to send notifications
+  displayName: Emails
+  name: INVENTORY_NOTIFICATION_EMAIL_ADDRESS
+  required: false
 - description: Catalog Service database user name
   displayName: Catalog Database username
   from: user[a-zA-Z0-9]{3}

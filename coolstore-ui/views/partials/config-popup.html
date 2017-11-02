@@ -4,7 +4,7 @@
     <h2 class="modal-title">Configuration</h2>
 </div>
 <div class="modal-body">
-    <h3>Configure CoolStore using the following options</h3>
+    <h3>Configure CoolStore using the following options. Separate multiple entries with a comma (,)</h3>
     <hr>
     <form class="form-horizontal">
         <div class="form-group">
@@ -15,9 +15,21 @@
             </div>
         </div>
         <div class="form-group">
-            <label class="col-sm-3 control-label" for="sms">SMS Phone Number for Notifications</label>
+
+            <label class="col-sm-3 control-label" for="sms">SMS Phone Number(s) for Notifications
+            </label>
             <div class="col-sm-4">
-                <input type="text" id="sms" ng-model="sms" class="form-control"></div>
+                <input ng-style="{'border-color': (sms == undefined || sms.length <= 0) ? '#cc0000' : ''}" type="text" id="sms" ng-model="sms" class="form-control">
+                <span style="color: #cc0000" ng-if="sms == undefined || sms.length <= 0">&nbsp;&nbsp;<span class="fa fa-warning"></span> (Disabled)</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3 control-label" for="email">Email address(es) for Notifications
+            </label>
+            <div class="col-sm-4">
+                <input ng-style="{'border-color': (email == undefined || email.length <= 0) ? '#cc0000' : ''}" type="text" id="email" ng-model="email" class="form-control">
+                <span style="color: #cc0000" ng-if="email == undefined || email.length <= 0">&nbsp;&nbsp;<span class="fa fa-warning"></span> (Disabled)</span>
+            </div>
         </div>
     </form>
 
