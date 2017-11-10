@@ -75,12 +75,15 @@ public class InventoryService {
 		Inventory inventory = em.find(Inventory.class,itemId);
 		int originalQuantity = inventory.getQuantity();
 		int newQuantity = originalQuantity - amt;
+		logger.info("Setting quantity of item " + itemId + " to " + newQuantity);
 		inventory.setQuantity(newQuantity);
 		if (newQuantity < config.getThreshold()) {
 			try {
-				snsService.sendNotification("Low Inventory Warning: Item " +
+				String msg = "Low Inventory Warning: Item " +
 						inventory.getItemId() + " quantity remaining: " + newQuantity +
-						" is below threshold (" + config.getThreshold() + ").");
+						" is below threshold (" + config.getThreshold() + ").";
+				logger.info(msg);
+				snsService.sendNotification(msg);
 			} catch (Exception ex) {
 				logger.log(Level.WARNING, "Cannot send SNS: " + ex.getMessage(), ex);
 			}

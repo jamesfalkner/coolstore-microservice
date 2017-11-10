@@ -115,6 +115,7 @@ public class SNSService {
                 .withStringValue("Promotional") //Sets the type to promotional.
                 .withDataType("String"));
 
+        logger.info("Sending notification to SNS topic " + topicArn + ": " + msg);
         PublishRequest publishRequest = new PublishRequest()
                 .withMessage(msg)
                 .withTopicArn(topicArn)
