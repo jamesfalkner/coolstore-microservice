@@ -1509,6 +1509,8 @@ objects:
                 fieldPath: metadata.namespace
           - name: JAVA_OPTIONS
             value: "-Djava.net.preferIPv4Stack=true -Dswarm.project.stage=production -Dswarm.project.stage.file=file:///app/config/review-config.yml"
+          - name: GC_MAX_METASPACE_SIZE
+            value: "500"
           volumeMounts:
             - name: config
               mountPath: /app/config
