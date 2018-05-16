@@ -317,6 +317,32 @@ objects:
 - apiVersion: v1
   kind: BuildConfig
   metadata:
+    labels:
+      build: inventory-builder
+    name: inventory-builder
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: inventory-builder:latest
+    source:
+      dockerfile: |2
+            FROM registry.access.redhat.com/jboss-eap-7/eap70-openshift:1.6
+            RUN sed -i 's/JBOSS_HA_ARGS="-b ${IP_ADDR}/JBOSS_HA_ARGS="-b 0.0.0.0/' /opt/eap/bin/launch/ha.sh
+      type: Dockerfile
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: eap70-openshift:1.6
+      type: Docker
+    triggers:
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
     name: inventory
     labels:
       app: inventory
@@ -338,8 +364,7 @@ objects:
           value: ${MAVEN_MIRROR_URL}
         from:
           kind: ImageStreamTag
-          name: jboss-eap70-openshift:1.5
-          namespace: ${IMAGE_STREAM_NAMESPACE}
+          name: inventory-builder:latest
       type: Source
     triggers:
     - type: ConfigChange
