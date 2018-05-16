@@ -29,7 +29,13 @@ public class CatalogEndpoint implements Serializable {
     @GET
     @Path("/")
     public List<Product> listAll() {
-        return catalogService.getProducts();
+
+        List<Product> products = catalogService.getProducts();
+
+        if (System.getenv("SHOUT") != null) {
+            products.forEach(product -> product.setDesc(product.getDesc().toUpperCase()));
+        }
+        return products;
     }
 
     @POST

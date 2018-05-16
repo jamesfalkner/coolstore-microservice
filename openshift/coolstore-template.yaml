@@ -11,6 +11,23 @@ metadata:
   name: coolstore
 message: "When using this template, the rating, review, turbine-server and hystrix-dashboard pods are slaced to zero by default to limit resource usage. Scale them up if you need these services or use the provisioning script instead."
 objects:
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    name: coolstore-ingress
+    annotations:
+      kubernetes.io/ingress.class: "istio"
+  spec:
+    backend:
+      serviceName: web-ui
+      servicePort: http
+    rules:
+    - http:
+        paths:
+        - path: /api/*
+          backend:
+            serviceName: coolstore-gw
+            servicePort: http
 - apiVersion: v1
   groupNames: null
   kind: RoleBinding
@@ -76,13 +93,15 @@ objects:
       app: web-ui
       deploymentconfig: web-ui
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: web-ui
           deploymentconfig: web-ui
+          version: v1
       spec:
         containers:
         - env:
@@ -95,28 +114,28 @@ objects:
           name: web-ui
           ports:
           - containerPort: 8080
+            name: http
             protocol: TCP
           livenessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080
             initialDelaySeconds: 30
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 5            
           readinessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080
             initialDelaySeconds: 30
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 1
-          resources: {}
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -140,10 +159,10 @@ objects:
     name: web-ui
   spec:
     ports:
-    - name: 8080-tcp
+    - name: http
       port: 8080
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
     selector:
       deploymentconfig: web-ui
 - apiVersion: v1
@@ -209,13 +228,15 @@ objects:
     selector:
       deploymentconfig: coolstore-gw
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: coolstore-gw
           deploymentconfig: coolstore-gw
+          version: v1
         name: coolstore-gw
       spec:
         containers:
@@ -226,9 +247,10 @@ objects:
                 fieldPath: metadata.namespace
           image: library/coolstore-gw:latest
           livenessProbe:
-            httpGet:
-              path: /health
-              port: 8081
+            exec:
+              command:
+              - curl
+              - http://localhost:8081/health
             initialDelaySeconds: 30
             failureThreshold: 10
             periodSeconds: 10
@@ -236,14 +258,17 @@ objects:
           ports:
           - containerPort: 8778
             name: jolokia
+          - containerPort: 8080
+            name: http
+            protocol: TCP
           readinessProbe:
-            httpGet:
-              path: /health
-              port: 8081
+            exec:
+              command:
+              - curl
+              - http://localhost:8081/health
             initialDelaySeconds: 30
             failureThreshold: 10
             periodSeconds: 10
-          resources: {}
     triggers:
     - imageChangeParams:
         automatic: true
@@ -265,7 +290,8 @@ objects:
     ports:
     - port: 8080
       protocol: TCP
-      targetPort: 8080
+      name: http
+      targetPort: http
     selector:
       deploymentconfig: coolstore-gw
 - apiVersion: v1
@@ -330,13 +356,15 @@ objects:
     selector:
       deploymentconfig: inventory
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: inventory
           deploymentconfig: inventory
+          version: v1
         name: inventory
       spec:
         containers:
@@ -374,10 +402,10 @@ objects:
                 - :shutdown(timeout=60)
           livenessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080
             initialDelaySeconds: 60
             periodSeconds: 10
             successThreshold: 1
@@ -395,19 +423,14 @@ objects:
             protocol: TCP
           readinessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080
             initialDelaySeconds: 60
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 1Gi
-            requests:
-              memory: 512Mi
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -434,8 +457,9 @@ objects:
   spec:
     ports:
     - port: 8080
+      name: http
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
     selector:
       deploymentconfig: inventory
 - apiVersion: v1
@@ -453,10 +477,13 @@ objects:
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: inventory
           comp-type: database
           deploymentconfig: inventory-postgresql
+          version: v1
         name: inventory-postgresql
       spec:
         containers:
@@ -475,6 +502,7 @@ objects:
             name: inventory-postgresql-data
           ports:
           - containerPort: 5432
+            name: postgresql
             protocol: TCP
           livenessProbe:
             initialDelaySeconds: 30
@@ -514,7 +542,8 @@ objects:
   spec:
     ports:
     - port: 5432
-      targetPort: 5432
+      name: postgresql
+      targetPort: postgresql
     selector:
       deploymentconfig: inventory-postgresql
 # Catalog Service
@@ -566,14 +595,17 @@ objects:
     replicas: 1
     selector:
       deploymentconfig: catalog
+      version: v1
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: catalog
           deploymentconfig: catalog
+          version: v1
         name: catalog
       spec:
         containers:
@@ -604,19 +636,86 @@ objects:
             failureThreshold: 10
             exec:
               command:
-              - /bin/bash
-              - -c
-              - curl -s -u Skq3VtCd:oktt6yhw 'http://localhost:8080/manager/jmxproxy/?get=Catalina%3Atype%3DServer&att=stateName'
-                |grep -iq 'stateName *= *STARTED'
+              - curl
+              - http://localhost:8080/
             initialDelaySeconds: 15
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 600Mi
-            requests:
-              memory: 200Mi
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 75
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - catalog
+        from:
+          kind: ImageStreamTag
+          name: catalog:latest
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: catalog-v2
+    labels:
+      app: catalog
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: catalog
+      version: v2
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
+        labels:
+          app: catalog
+          deploymentconfig: catalog
+          version: v2
+        name: catalog
+      spec:
+        containers:
+        - env:
+          - name: JWS_ADMIN_USERNAME
+            value: Skq3VtCd
+          - name: JWS_ADMIN_PASSWORD
+            value: oktt6yhw
+          - name: DB_USERNAME
+            value: ${CATALOG_DB_USERNAME}
+          - name: DB_PASSWORD
+            value: ${CATALOG_DB_PASSWORD}
+          - name: DB_NAME
+            value: catalogdb
+          - name: DB_SERVER
+            value: catalog-mongodb
+          - name: SHOUT
+            value: "true"
+          image: catalog
+          imagePullPolicy: Always
+          name: catalog
+          ports:
+          - containerPort: 8778
+            name: jolokia
+            protocol: TCP
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 10
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -644,9 +743,10 @@ objects:
     ports:
     - port: 8080
       protocol: TCP
-      targetPort: 8080
+      name: http
+      targetPort: http
     selector:
-      deploymentconfig: catalog
+      app: catalog
 - apiVersion: v1
   kind: Service
   metadata:
@@ -658,7 +758,7 @@ objects:
     - name: mongo
       port: 27017
       protocol: TCP
-      targetPort: 27017
+      targetPort: mongo
     selector:
       deploymentconfig: catalog-mongodb
     sessionAffinity: None
@@ -667,7 +767,7 @@ objects:
   kind: DeploymentConfig
   metadata:
     labels:
-      app: catalog
+      app: catalog-mongodb
       comp-type: database
     name: catalog-mongodb
   spec:
@@ -677,14 +777,16 @@ objects:
     strategy:
       recreateParams:
         timeoutSeconds: 600
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
-          app: catalog
-          comp-type: database
-          deploymentconfig: catalog-mongodb
+            app: catalog
+            comp-type: database
+            deploymentconfig: catalog-mongodb
+            version: v1
       spec:
         containers:
         - env:
@@ -713,6 +815,7 @@ objects:
           name: catalog-mongodb
           ports:
           - containerPort: 27017
+            name: mongo
             protocol: TCP
           readinessProbe:
             exec:
@@ -727,9 +830,6 @@ objects:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 512Mi
           securityContext:
             capabilities: {}
             privileged: false
@@ -802,17 +902,19 @@ objects:
     labels:
       app: rating
   spec:
-    replicas: 0
+    replicas: 1
     selector:
       deploymentconfig: rating
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: rating
           deploymentconfig: rating
+          version: v1
         name: rating
       spec:
         containers:
@@ -833,29 +935,24 @@ objects:
             protocol: TCP
           livenessProbe:
             failureThreshold: 2
-            httpGet:
-              path: "/health/liveness"
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/health/liveness
             initialDelaySeconds: 60
             periodSeconds: 10
             successThreashold: 1
             timeoutSeconds: 1
           readinessProbe:
             failureThreshold: 3
-            httpGet:
-              path: "/health/readiness"
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/health/readiness
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreashold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 500Mi
-            requests:
-              memory: 200Mi
         terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -882,8 +979,9 @@ objects:
   spec:
     ports:
     - port: 8080
+      name: http
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
     selector:
       deploymentconfig: rating
 - apiVersion: v1
@@ -897,7 +995,7 @@ objects:
     - name: mongo
       port: 27017
       protocol: TCP
-      targetPort: 27017
+      targetPort: mongo
     selector:
       deploymentconfig: rating-mongodb
     sessionAffinity: None
@@ -910,7 +1008,7 @@ objects:
       comp-type: database
     name: rating-mongodb
   spec:
-    replicas: 0
+    replicas: 1
     selector:
       deploymentconfig: rating-mongodb
     strategy:
@@ -935,14 +1033,16 @@ objects:
                 db.ratings.insert({"_id":"444436","itemId":"444436","rating":3.0,"count":123});
           failurePolicy: ignore
         timeoutSeconds: 600
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: rating
           comp-type: database
           deploymentconfig: rating-mongodb
+          version: v1
       spec:
         containers:
         - env:
@@ -972,6 +1072,7 @@ objects:
           ports:
           - containerPort: 27017
             protocol: TCP
+            name: mongo
           readinessProbe:
             exec:
               command:
@@ -985,9 +1086,6 @@ objects:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 512Mi
           securityContext:
             capabilities: {}
             privileged: false
@@ -1081,13 +1179,15 @@ objects:
     selector:
       deploymentconfig: cart
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: cart
           deploymentconfig: cart
+          version: v1
         name: cart
       spec:
         containers:
@@ -1127,19 +1227,14 @@ objects:
             protocol: TCP
           readinessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /health
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/health
             initialDelaySeconds: 30
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 1Gi
-            requests:
-              memory: 200Mi
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -1164,8 +1259,9 @@ objects:
   spec:
     ports:
     - port: 8080
+      name: http
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
     selector:
       deploymentconfig: cart
 # Pricing Rules Service
@@ -1212,17 +1308,19 @@ objects:
   metadata:
     name: pricing
   spec:
-    replicas: 0
+    replicas: 1
     selector:
       deploymentconfig: pricing
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           application: pricing
           deploymentconfig: pricing
+          version: v1
         name: pricing
       spec:
         containers:
@@ -1256,10 +1354,10 @@ objects:
                 - :shutdown(timeout=60)
           livenessProbe:
             failureThreshold: 5
-            httpGet:
-              path: /kie-server/docs/
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/kie-server/docs/
             initialDelaySeconds: 120
             periodSeconds: 5
             successThreshold: 1
@@ -1277,19 +1375,14 @@ objects:
             protocol: TCP
           readinessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /kie-server/docs/
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/kie-server/docs/
             initialDelaySeconds: 15
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 600Mi
-            requests:
-              memory: 200Mi
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -1317,7 +1410,8 @@ objects:
     ports:
     - port: 8080
       protocol: TCP
-      targetPort: 8080
+      name: http
+      targetPort: http
     selector:
       deploymentconfig: pricing
 
@@ -1367,17 +1461,19 @@ objects:
     labels:
       app: review
   spec:
-    replicas: 0
+    replicas: 1
     selector:
       deploymentconfig: review
     strategy:
-      resources: {}
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: review
           deploymentconfig: review
+          version: v1
         name: review
       spec:
         containers:
@@ -1387,7 +1483,7 @@ objects:
               fieldRef:
                 fieldPath: metadata.namespace
           - name: JAVA_OPTIONS
-            value: "-Dswarm.project.stage=production -Dswarm.project.stage.file=file:///app/config/review-config.yml"
+            value: "-Djava.net.preferIPv4Stack=true -Dswarm.project.stage=production -Dswarm.project.stage.file=file:///app/config/review-config.yml"
           volumeMounts:
             - name: config
               mountPath: /app/config
@@ -1403,29 +1499,24 @@ objects:
             protocol: TCP
           livenessProbe:
             failureThreshold: 2
-            httpGet:
-              path: "/health"
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/health
             initialDelaySeconds: 60
             periodSeconds: 10
             successThreashold: 1
             timeoutSeconds: 1
           readinessProbe:
             failureThreshold: 3
-            httpGet:
-              path: "/health"
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/health
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreashold: 1
             timeoutSeconds: 1
-          resources:
-            limits:
-              memory: 500Mi
-            requests:
-              memory: 200Mi
         volumes:
           - configMap:
               name: review-config
@@ -1460,7 +1551,8 @@ objects:
     ports:
     - port: 8080
       protocol: TCP
-      targetPort: 8080
+      name: http
+      targetPort: http
     selector:
       deploymentconfig: review
 - apiVersion: v1
@@ -1471,17 +1563,20 @@ objects:
       comp-type: database
       app: review
   spec:
-    replicas: 0
+    replicas: 1
     selector:
       deploymentconfig: review-postgresql
     strategy:
       type: Recreate
     template:
       metadata:
+        annotations:
+          sidecar.istio.io/inject: "true"
         labels:
           app: review
           comp-type: database
           deploymentconfig: review-postgresql
+          version: v1
         name: review-postgresql
       spec:
         containers:
@@ -1501,6 +1596,7 @@ objects:
           ports:
           - containerPort: 5432
             protocol: TCP
+            name: postgresql
           livenessProbe:
             initialDelaySeconds: 30
             tcpSocket:
@@ -1539,7 +1635,8 @@ objects:
   spec:
     ports:
     - port: 5432
-      targetPort: 5432
+      name: postgresql
+      targetPort: postgresql
     selector:
       deploymentconfig: review-postgresql
 - apiVersion: v1
@@ -1603,29 +1700,29 @@ objects:
           name: turbine-server
           ports:
           - containerPort: 8080
+            name: http
             protocol: TCP
           - containerPort: 8778
             protocol: TCP
           - containerPort: 9779
             protocol: TCP
-          resources: {}
           terminationMessagePath: /dev/termination-log
           readinessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /health
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/health
             initialDelaySeconds: 30
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
           livenessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /health
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/health
             initialDelaySeconds: 60
             periodSeconds: 30
             successThreshold: 1
@@ -1649,10 +1746,10 @@ objects:
     name: turbine-server
   spec:
     ports:
-    - name: 80-tcp
+    - name: http
       port: 80
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
     selector:
       deploymentconfig: turbine-server
       component: turbine-server
@@ -1715,27 +1812,27 @@ objects:
           - containerPort: 9779
             protocol: TCP
           - containerPort: 8080
+            name: http
             protocol: TCP
           - containerPort: 8778
             protocol: TCP
-          resources: {}
           terminationMessagePath: /dev/termination-log
           readinessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/
             initialDelaySeconds: 30
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
           livenessProbe:
             failureThreshold: 10
-            httpGet:
-              path: /
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+              - curl
+              - http://localhost:8080/
             initialDelaySeconds: 30
             periodSeconds: 10
             successThreshold: 1
@@ -1761,10 +1858,10 @@ objects:
     name: hystrix-dashboard
   spec:
     ports:
-    - name: 8080-tcp
+    - name: http
       port: 8080
       protocol: TCP
-      targetPort: 8080
+      targetPort: http
     selector:
       deploymentconfig: hystrix-dashboard
       component: hystrix-dashboard

@@ -6,6 +6,16 @@ import java.util.List;
 public class ShoppingCart  {
 
 
+	public String getCartId() {
+		return cartId;
+	}
+
+	public void setCartId(String cartId) {
+		this.cartId = cartId;
+	}
+
+	public String cartId;
+
     public double cartItemTotal=0.0;
 
     public double cartItemPromoSavings=0.0;

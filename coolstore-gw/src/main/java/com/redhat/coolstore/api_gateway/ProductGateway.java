@@ -18,6 +18,7 @@ package com.redhat.coolstore.api_gateway;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 import javax.ws.rs.core.Response;
 
@@ -96,7 +97,7 @@ public class ProductGateway extends RouteBuilder {
                         .to("direct:productFallback")
                     .end()
                     .unmarshal(productFormatter)
-                .split(body()).parallelProcessing()
+                .split(body()).parallelProcessing().multicast().parallelProcessing()
                 .enrich("direct:inventory", new InventoryEnricher())
                 .enrich("direct:rating", new RatingEnricher())
                 .end()
@@ -142,22 +143,23 @@ public class ProductGateway extends RouteBuilder {
         from("direct:rating")
                 .id("ratingRoute")
                 .setHeader("itemId", simple("${body.itemId}"))
-                .setBody(simple("null"))
-                .removeHeaders("CamelHttp*")
-                .setHeader(Exchange.HTTP_METHOD, HttpMethods.GET)
-                .setHeader(Exchange.HTTP_URI, simple("http://{{env:RATING_ENDPOINT:rating:8080}}/api/rating/${header.itemId}"))
                 .hystrix().id("Rating Service")
-                .hystrixConfiguration()
-                .executionTimeoutInMilliseconds(5000).circuitBreakerSleepWindowInMilliseconds(10000)
-                .end()
-                .to("http4://DUMMY2")
+                    .hystrixConfiguration()
+                        .executionTimeoutInMilliseconds(hystrixExecutionTimeout)
+                        .groupKey(hystrixGroupKey)
+                        .circuitBreakerEnabled(hystrixCircuitBreakerEnabled)
+                    .end()
+                    .setBody(simple("null"))
+                    .removeHeaders("CamelHttp*")
+                    .recipientList(simple("http4://{{env:RATING_ENDPOINT:rating:8080}}/api/rating/${header.itemId}")).end()
                 .onFallback()
                 .to("direct:ratingFallback")
                 .end()
-                .choice().when(body().isNull()).to("direct:ratingFallback").end()
+                .choice().when(body().isNull())
+                .to("direct:ratingFallback")
+                .end()
                 .setHeader("CamelJacksonUnmarshalType", simple(Rating.class.getName()))
                 .unmarshal().json(JsonLibrary.Jackson, Rating.class);
-
         from("direct:ratingFallback")
                 .id("ratingFallbackRoute")
                 .transform()
@@ -176,7 +178,7 @@ public class ProductGateway extends RouteBuilder {
             p.setAvailability(i);
             original.getOut().setBody(p);
             log.info("------------------->"+p);
-            
+            original.getOut().setHeaders(original.getIn().getHeaders());
             return original;
 
         }
@@ -191,6 +193,7 @@ public class ProductGateway extends RouteBuilder {
             Rating r = resource.getIn().getBody(Rating.class);
             p.setRating(r);
             original.getOut().setBody(p);
+            original.getOut().setHeaders(original.getIn().getHeaders());
             return original;
 
         }
