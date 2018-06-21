@@ -4,9 +4,32 @@ This is an example demo showing a retail store consisting of several microservic
 
 It demonstrates how to wire up small microservices into a larger application using microservice architectural principals.
 
-Development Branch
+Istio Branch
 ------------------
-:warning: **Please note that master is our development branch and may contain untested features.** For stable branch use a version branch like `1.2.x`
+:warning: **Please note that is a development branch dedicated to use with [Istio](https://istio.io) and may contain broken things.** For stable branch use a version branch like `1.2.x`.
+
+To use this requires you to have already installed Istio on top of OpenShift (or use the [developmental Istio-OpenShift binary](https://github.com/openshift-istio/origin/releases)) and a few other tidbits as outlined in the below bash script:
+
+```bash
+istiooc cluster up --istio
+istiooc login -u system:admin
+# wait for istio to be installed and operational
+
+# install needed jboss imagestream definitions
+istiooc create -n openshift -f https://raw.githubusercontent.com/jboss-fuse/application-templates/master/fis-image-streams.json
+istiooc create -n openshift -f https://raw.githubusercontent.com/jboss-openshift/application-templates/master/eap/eap70-image-stream.json
+istiooc create -n openshift -f https://raw.githubusercontent.com/jboss-openshift/application-templates/master/webserver/jws31-tomcat8-image-stream.json
+istiooc create -n openshift -f https://raw.githubusercontent.com/jboss-openshift/application-templates/master/openjdk/openjdk18-image-stream.json
+istiooc create -n openshift -f https://raw.githubusercontent.com/jboss-openshift/application-templates/master/decisionserver/decisionserver64-image-
+
+# install coolstore
+istiooc new-project coolstore-mesh
+istiooc adm policy add-scc-to-user anyuid -z default
+istiooc adm policy add-scc-to-user privileged -z default
+istiooc process -f https://raw.githubusercontent.com/jamesfalkner/coolstore-microservice/istio/openshift/coolstore-template.yaml | istiooc create -f -
+```
+
+This will kick off a number of builds and eventually an istio-ified CoolStore should be ready to rock at `http://$(oc get route istio-ingress -n istio-system --template='{{ .spec.host }}')"`
 
 Services
 --------
